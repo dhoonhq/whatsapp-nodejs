@@ -1,4 +1,4 @@
-For business cooperation or customization needs, please contact the following email: yisbug@gmail.com
+For business cooperation or customization needs, please contact the following email: yisbug@qq.com
 
 ### About
 
