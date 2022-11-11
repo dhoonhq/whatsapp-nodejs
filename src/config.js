@@ -1,4 +1,4 @@
-const globalConfig = require('/etc/whatsapp.json');
+// const globalConfig = require('/etc/whatsapp.json');
 const crypto = require('crypto');
 
 module.exports = {
@@ -90,5 +90,5 @@ module.exports = {
     return result;
   },
 
-  ...globalConfig,
+  // ...globalConfig,
 };
