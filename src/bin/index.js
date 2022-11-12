@@ -11,7 +11,7 @@ if (fse.pathExistsSync(path.join(__dirname, './darwin'))) {
 
 const basePath = isDev ? './darwin/' : './linux/';
 
-const files = fse.readdirSync(path.join(__dirname, './darwin')).filter(item => item[0] !== '.');
+const files = fse.readdirSync(path.join(__dirname, basePath)).filter(item => item[0] !== '.');
 
 const obj = {};
 for (let i = 0; i < files.length; i++) {
