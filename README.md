@@ -20,6 +20,22 @@ TODO:
 
 ### Usage
 
+#### Updates
+
+2022/11/21
+
+- fix: node_modules/@privacyresearch/libsignal-protocol-typescript/lib/session-record.js
+- fix: node_modules/@privacyresearch/curve25519-typescript/lib/built/curveasm.js
+
+How to update:
+
+```
+rm -rf node_modules
+npm i // or yarn
+```
+
+And the repair file of the patches directory will be automatically moved to the node_modules.
+
 #### Installation
 
 requires:
