@@ -62,7 +62,8 @@ const main = async () => {
     },
   });
 
-  const res = await whatsapp.sms();
+  let res = null;
+  res = await whatsapp.sms();
   // {status:'success'}
   // {status:'error'}
 };
@@ -89,7 +90,8 @@ const main = async () => {
     },
   });
 
-  const res = await whatsapp.register({ code: '352-002' });
+  let res = null;
+  res = await whatsapp.register({ code: '352-002' });
   // {status:'success'}
   // {status:'error'}
 };
@@ -116,7 +118,8 @@ const main = async () => {
     },
   });
 
-  const res = await whatsapp.login();
+  let res = null;
+  res = await whatsapp.login();
   // {status:'success'}
   // {status:'error'}
 };
@@ -143,7 +146,9 @@ const main = async () => {
     },
   });
 
-  const res = await whatsapp.login();
+  let res = null;
+
+  res = await whatsapp.login();
   // {status:'success'}
   // {status:'error'}
 
