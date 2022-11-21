@@ -1,0 +1,30 @@
+diff --git a/node_modules/@privacyresearch/libsignal-protocol-typescript/lib/session-record.js b/node_modules/@privacyresearch/libsignal-protocol-typescript/lib/session-record.js
+index cf24845..23a302f 100644
+--- a/node_modules/@privacyresearch/libsignal-protocol-typescript/lib/session-record.js
++++ b/node_modules/@privacyresearch/libsignal-protocol-typescript/lib/session-record.js
+@@ -52,15 +52,23 @@ class SessionRecord {
+         }
+     }
+     static deserialize(serialized) {
+-        const data = JSON.parse(serialized);
+-        if (data.version !== SESSION_RECORD_VERSION) {
++        let data = serialized;
++        try{
++          data = JSON.parse(serialized);
++        }catch(e){
++          console.error(e);
++        }
++        //const data = JSON.parse(serialized);
++        if (data && data.version !== SESSION_RECORD_VERSION) {
+             SessionRecord.migrate(data);
+         }
+         const record = new SessionRecord();
+         record.sessions = {};
++        if(data && data.sessions){
+         for (const k of Object.keys(data.sessions)) {
+             record.sessions[k] = sessionTypeStringToArrayBuffer(data.sessions[k]);
+         }
++        }
+         if (record.sessions === undefined ||
+             record.sessions === null ||
+             typeof record.sessions !== 'object' ||

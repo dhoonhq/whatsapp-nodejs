@@ -1,5 +1,5 @@
 {
-  "name": "whatsapp-nodejs",
+  "name": "whatsapp-sdk-nodejs",
   "version": "0.1.0",
   "description": "This is a library based on whatsapp androd latest version, you can use it build your own app.",
   "main": "src/index.js",
@@ -7,6 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
+    "postinstall": "patch-package",
     "start": "NODE_ENV=production npm run startHttp && npm run startSocket",
     "startHttp": "NODE_ENV=production egg-scripts start --daemon --title=egg-server-whatsapp",
     "startSocket": "NODE_ENV=production pm2 start ecosystem.config.js",
@@ -39,9 +40,10 @@
   ],
   "author": "yisbug@gmail.com",
   "dependencies": {
-    "@privacyresearch/libsignal-protocol-typescript": "0.0.9",
+    "@privacyresearch/libsignal-protocol-typescript": "^0.0.15",
     "bunyan": "^1.8.15",
     "bunyan-debug-stream": "^2.0.0",
+    "cnpm": "^8.4.0",
     "curve25519-n": "^1.5.0",
     "egg": "^2.21.1",
     "egg-bcrypt": "^1.1.0",
@@ -89,7 +91,9 @@
     "eslint-plugin-react-hooks": "^4.2.0",
     "frida-compile": "^10.0.0",
     "mocha": "^8.3.0",
+    "patch-package": "^6.5.0",
     "pm2": "^4.5.4",
+    "postinstall-postinstall": "^2.1.0",
     "prettier": "^1.18.2"
   },
   "license": "ISC"

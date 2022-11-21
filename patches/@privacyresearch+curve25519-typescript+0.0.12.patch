@@ -1,0 +1,25 @@
+diff --git a/node_modules/@privacyresearch/curve25519-typescript/lib/built/curveasm.js b/node_modules/@privacyresearch/curve25519-typescript/lib/built/curveasm.js
+index 99d5e70..87d70ce 100644
+--- a/node_modules/@privacyresearch/curve25519-typescript/lib/built/curveasm.js
++++ b/node_modules/@privacyresearch/curve25519-typescript/lib/built/curveasm.js
+@@ -130,13 +130,13 @@ var Module = (function () {
+             }
+             arguments_ = process['argv'].slice(2);
+             // MODULARIZE will export the module in the proper place outside, we don't need to export here
+-            process['on']('uncaughtException', function (ex) {
+-                // suppress ExitStatus exceptions from showing an error
+-                if (!(ex instanceof ExitStatus)) {
+-                    throw ex;
+-                }
+-            });
+-            process['on']('unhandledRejection', abort);
++            // process['on']('uncaughtException', function (ex) {
++            //     // suppress ExitStatus exceptions from showing an error
++            //     if (!(ex instanceof ExitStatus)) {
++            //         throw ex;
++            //     }
++            // });
++            // process['on']('unhandledRejection', abort);
+             quit_ = function (status) {
+                 process['exit'](status);
+             };
