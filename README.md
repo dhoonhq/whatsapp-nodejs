@@ -14,6 +14,8 @@ QR-Code:
 
 ![ERC20](erc20.png)
 
+If the donation amount exceeds 100 \$, you can get a free technical consultation. For details, please contact us by email. Thank you.
+
 ### About
 
 [中文](README_CN.md)
