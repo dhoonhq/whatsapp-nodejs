@@ -446,7 +446,7 @@ class Whatsapp extends EventEmitter {
       const node = await this.sendNode(messageNode);
       return node;
     } catch (e) {
-      console.debug('retry message failed', e);
+      console.debug('retry send message failed', e);
       this.client.send('RETRY_SEND_MESSAGE', { status: 'error', jid, id }, e.message);
     }
   }
@@ -479,9 +479,7 @@ class Whatsapp extends EventEmitter {
       const encType = encNode.getAttr('type');
       let message = null;
 
-      console.log('encType', encType);
       if (encType === 'pkmsg') {
-        console.log(jid, 123123123123, encNode);
         message = await this.handlePreKeyWhisperMessage(jid, encNode, node);
       } else if (encType === 'msg') {
         message = await this.handleWhisperMessage(jid, encNode, node);
