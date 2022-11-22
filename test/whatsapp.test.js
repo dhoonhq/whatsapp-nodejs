@@ -1,9 +1,11 @@
 const { Whatsapp, WhatsappServer } = require('../src/index');
 
 const main = async () => {
-  const whatsapp = new Whatsapp();
+  const whatsapp = new Whatsapp({
+    mongodb: 'mongodb://localhost:27017/whatsapp',
+  });
   await whatsapp.init({
-    mobile: '34611093620',
+    mobile: '34611649553',
     proxy: {
       host: '127.0.0.1',
       port: 1086,
@@ -19,6 +21,10 @@ const main = async () => {
 
   // if the registration is successful, you can log in directly
   res = await whatsapp.login();
+
+  whatsapp.on('message', message => {
+    console.log('on message', message);
+  });
 
   // send text message
   res = await whatsapp.sendContactTextMessage({

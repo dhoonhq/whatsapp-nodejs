@@ -31,7 +31,7 @@ class EncryptedMessageProtocolEntity extends MessageProtocolEntity {
 
   toProtocolTreeNode() {
     const node = super.toProtocolTreeNode();
-    node.addChild(new ProtocolTreeNode('url_number'));
+    // node.addChild(new ProtocolTreeNode('url_number'));
     const participantsNode = new ProtocolTreeNode('participants');
     for (let i = 0; i < this.encEntities.length; i++) {
       const enc = this.encEntities[i];

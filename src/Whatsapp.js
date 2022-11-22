@@ -1,3 +1,4 @@
+const EventEmitter = require('events');
 const initBeforeStart = require('./initBeforeStart');
 const utils = require('./lib/utils');
 const WARequest = require('./lib/WARequest');
@@ -18,9 +19,15 @@ const ResultGetKeysIqProtocolEntity = require('./packet/ResultGetKeysIqProtocolE
 const EncProtocolEntity = require('./packet/EncProtocolEntity');
 const EncryptedMessageProtocolEntity = require('./packet/EncryptedMessageProtocolEntity');
 
+const RetryKeysProtocolEntity = require('./packet/RetryKeysProtocolEntity');
+const ProtocolEntity = require('./packet/ProtocolEntity');
+
+const SetKeysIqProtocolEntity = require('./packet/SetKeysIqProtocolEntity');
+
 const { SignalProtocolAddress } = libsignal;
-class Whatsapp {
+class Whatsapp extends EventEmitter {
   constructor(opts = {}) {
+    super();
     this.socketManager = new SocketManager();
 
     Object.assign(config, opts);
@@ -181,6 +188,9 @@ class Whatsapp {
         });
       });
       this.isLogin = true;
+
+      await this.signal.level_prekeys();
+      await this.syncPrekeys();
       return { status: 'success' };
     } catch (e) {
       return { status: 'failed', msg: e.message };
@@ -220,6 +230,43 @@ class Whatsapp {
       messageBuffer.toString('base64')
     );
     return node.toJSON();
+  }
+
+  // 同步 prekeys
+  async syncPrekeys() {
+    const unsentPrekeys = await this.signal.load_unsent_prekeys();
+    console.info('load unsent prekeys, nums: ', unsentPrekeys.length);
+    // 同步 prekeys
+    if (unsentPrekeys && unsentPrekeys.length) {
+      const node = await this.setPrekeys(
+        this.signal.registrationId,
+        this.signal.identityKeyPair.pubKey,
+        unsentPrekeys.map(item => item.preKey),
+        this.signal.signedPrekey
+      );
+      if (node.getAttr('type') === 'error') {
+        const text = node.getChild('error').getAttr('text');
+        const code = Number(node.getChild('error').getAttr('code'));
+
+        console.error(`sync prekeys failed,code:${code},text:${text}`);
+      } else {
+        await this.signal.set_prekeys_as_sent(unsentPrekeys.map(item => item.keyId));
+      }
+    }
+    return {};
+  }
+
+  // 设置 prekey
+  async setPrekeys(registrationId, identity, preKeys, signedKey) {
+    const setKeyIqNode = new SetKeysIqProtocolEntity(
+      identity,
+      signedKey,
+      preKeys,
+      5,
+      registrationId
+    ).toProtocolTreeNode();
+    const node = await this.sendNode(setKeyIqNode);
+    return node;
   }
 
   async getKeys(recipientIds) {
@@ -355,7 +402,7 @@ class Whatsapp {
         class: 'receipt',
       };
       this.sendAck(o);
-      // this.retrySendContactMessage(jid, id);
+      this.retrySendContactMessage(jid, id);
       return;
     }
     const o = {
@@ -367,6 +414,41 @@ class Whatsapp {
     if (t) o.t = t;
     if (offline) o.offline = String(offline);
     this.sendAck(o);
+  }
+
+  // 重发消息
+  async retrySendContactMessage(jid, id) {
+    try {
+      const message = await this.signal.loadMessage(jid, id);
+      // 最多重试 5 次
+      if (message.retry && message.retry >= 5) {
+        console.error(
+          'RETRY_SEND_MESSAGE',
+          { status: 'error', jid, id },
+          `max retry nums：${message.retry}`
+        );
+        return;
+      }
+      message.retry = (message.retry || 0) + 1;
+      await message.save();
+      await this.signal.removeSession(jid);
+      await this.getKeys([jid]);
+      const ciphertext = await this.signal.encrypt(jid, Buffer.from(message.record, 'base64'));
+      const msgType = ciphertext.type === 1 ? 'msg' : 'pkmsg';
+      const mediaType = message.attrs.type === 'media' ? 'image' : '';
+      const encNode = new EncProtocolEntity(msgType, 2, Buffer.from(ciphertext.body), mediaType);
+      // encNode.setAttr('count', '1');
+      const messageNode = new EncryptedMessageProtocolEntity(
+        [encNode],
+        message.attrs.type,
+        message.attrs
+      ).toProtocolTreeNode();
+      const node = await this.sendNode(messageNode);
+      return node;
+    } catch (e) {
+      console.debug('retry message failed', e);
+      this.client.send('RETRY_SEND_MESSAGE', { status: 'error', jid, id }, e.message);
+    }
   }
 
   async onMessage(node) {
@@ -385,10 +467,140 @@ class Whatsapp {
     const id = node.getAttr('id');
     const json = node.toJSON();
     const t = node.getAttr('t');
-    this.sendAck({ to: from, id, class: 'message', t }); // 先回包
+
     if (from === 'status@broadcast' || !['text', 'media'].includes(type)) {
       this.sendReceipt({ id, to: from, type: 'read' });
       this.sendAck({ to: from, id, class: 'message', t });
+    }
+    const encNode = node.getChild('enc');
+
+    try {
+      if (!encNode) return;
+      const encType = encNode.getAttr('type');
+      let message = null;
+
+      console.log('encType', encType);
+      if (encType === 'pkmsg') {
+        console.log(jid, 123123123123, encNode);
+        message = await this.handlePreKeyWhisperMessage(jid, encNode, node);
+      } else if (encType === 'msg') {
+        message = await this.handleWhisperMessage(jid, encNode, node);
+      } else if (encType === 'skmsg') {
+        message = await this.handleSenderKeyMessage(jid, encNode, node);
+      }
+      if (message && Object.keys(message).length === 0) {
+        throw new Error('message is empty');
+      }
+      this.sendAck({ to: from, id, class: 'message', t }); // 先回包
+      this.emit('message', message);
+    } catch (e) {
+      console.error(e);
+      this.sendAck({ to: from, id, class: 'message', t }); // 先回包
+      const count = Number(encNode.getAttr('count')) || 0;
+      if (count > 3) return; // 最多重试 5 次。
+      if (count === 0) {
+        // 请求重新发送消息
+        this.sendReceipt(
+          {
+            to: utils.normalize(jid),
+            type: 'retry',
+            id,
+          },
+          [
+            new ProtocolEntity('retry', {
+              t: node.getAttr('t'),
+              id,
+              count: '1',
+              v: '1',
+            }).toTreeNode(),
+            new ProtocolEntity(
+              'registration',
+              null,
+              null,
+              this.adjustId(this.signal.registrationId, 8)
+            ).toTreeNode(),
+          ]
+        );
+      } else {
+        const retryNode = new RetryKeysProtocolEntity(
+          {
+            to: utils.normalize(jid),
+            type: 'retry',
+            id,
+          },
+          {
+            t: node.getAttr('t'),
+            id,
+            count: String(count + 1),
+            v: '1',
+          },
+          this.signal.identityKeyPair.pubKey,
+          this.signal.signedPrekey,
+          this.signal.preKeys[0].preKey,
+          5,
+          this.signal.registrationId
+        ).toProtocolTreeNode();
+        this.sendNode(retryNode);
+      }
+    }
+  }
+
+  adjustId(_id, len = 6) {
+    let str = Number(_id).toString(16);
+    if (str.length >= len) {
+      if (str.length % 2 !== 0) {
+        str = `0${str}`;
+      }
+    } else {
+      str = new Array(len - str.length + 1).join('0') + str;
+    }
+    return Buffer.from(str, 'hex');
+  }
+
+  async handlePreKeyWhisperMessage(senderJid, encNode, node) {
+    console.debug('handlePreKeyWhisperMessage', senderJid);
+    const res = await this.signal.decrypt_pkmsg(senderJid, encNode.data, true);
+    const buffer = Message.decode(Buffer.from(res)).toJSON();
+    await this.checkAndCreateGroupSession(buffer, node);
+    return buffer;
+  }
+
+  async handleSenderKeyMessage(senderJid, encNode, node) {
+    console.debug('handleSenderKeyMessage', senderJid);
+    try {
+      const res = await this.signal.group_decrypt(
+        node.getAttr('from').split('@')[0],
+        node.getAttr('participant').split('@')[0],
+        encNode.data
+      );
+      const buffer = Message.decode(Buffer.from(res)).toJSON();
+      await this.checkAndCreateGroupSession(buffer, node);
+      return buffer;
+    } catch (e) {
+      await this.signal.removeSenderKey(node.getAttr('from').split('@')[0], senderJid);
+      throw new Error(e);
+    }
+  }
+
+  async handleWhisperMessage(senderJid, encNode, node) {
+    console.debug('handleWhisperMessage', senderJid);
+    const res = await this.signal.decrypt_msg(senderJid, encNode.data, true);
+    const buffer = Message.decode(Buffer.from(res)).toJSON();
+    await this.checkAndCreateGroupSession(buffer, node);
+    return buffer;
+  }
+
+  async checkAndCreateGroupSession(buffer, node) {
+    if (buffer.senderKeyDistributionMessage) {
+      console.debug('encNode buffer', buffer);
+      // await this.manager.group_create_session(
+      //   node.getAttr('from').split('@')[0], // groupId
+      //   node.getAttr('participant').split('@')[0], // jid
+      //   Buffer.from(
+      //     buffer.senderKeyDistributionMessage.axolotlSenderKeyDistributionMessage,
+      //     'base64'
+      //   )
+      // );
     }
   }
 
@@ -504,8 +716,8 @@ class Whatsapp {
     this.sendNode(node);
   }
 
-  async sendReceipt(attrs) {
-    const node = new ProtocolTreeNode('receipt', attrs);
+  async sendReceipt(attrs, children, data) {
+    const node = new ProtocolTreeNode('receipt', attrs, children, data);
     this.sendNode(node);
   }
 

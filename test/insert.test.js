@@ -15,6 +15,10 @@ const main = async () => {
   });
   await whatsapp.init({
     mobile,
+    proxy: {
+      host: '127.0.0.1',
+      port: 1086,
+    },
   });
 
   // insert into db

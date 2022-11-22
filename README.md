@@ -28,15 +28,11 @@ The latest official version: https://www.whatsapp.com/android/
 
 Latest SDK version: 2.22.21.71
 
-TODO:
-
-- [x] login 2022.10.15
-- [x] register 2022.10.31
-- [x] send message 2022.11.15
-
-### Usage
-
 #### Updates
+
+2022/11/23
+
+- feat: support recv messages.
 
 2022/11/21
 
@@ -51,6 +47,8 @@ npm i // or yarn
 ```
 
 And the repair file of the patches directory will be automatically moved to the node_modules.
+
+### Usage
 
 #### Installation
 
@@ -187,6 +185,38 @@ const main = async () => {
   res = await whatsapp.sendContactTextMessage({
     jid: '8613666666666',
     message: 'hello world.',
+  });
+};
+
+main();
+```
+
+#### Recv Message
+
+```javascript
+const { Whatsapp } = require('whatsapp-nodejs');
+
+const main = async () => {
+  const whatsapp = new Whatsapp({
+    mongodb: 'mongodb://localhost:27017/whatsapp',
+  });
+  await whatsapp.init({
+    mobile: '8613888888888', // cc is required, for example, china is +86
+    proxy: {
+      host: '127.0.0.1',
+      port: 1080,
+      userId: 'test',
+      password: 'test',
+    },
+  });
+
+  let res = null;
+  res = await whatsapp.login();
+  // {status:'success'}
+  // {status:'error'}
+
+  whatsapp.on('message', message => {
+    console.log('on message', message);
   });
 };
 
