@@ -2,8 +2,9 @@
 const crypto = require('crypto');
 
 module.exports = {
-  version: '2.22.21.71', // 最新安卓版本
-  md5Class: 'vZBCF10FCpZe5K5dQdt7fA==',
+  version: '2.22.24.79', // 最新安卓版本
+
+  md5Class: 'aB7TRBP7/nT6KypPakIupw==',
 
   mongodb: 'mongodb://localhost:27017/whatsapp',
 
