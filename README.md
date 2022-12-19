@@ -1,21 +1,5 @@
 For business cooperation or customization needs, please contact the following email: yisbug@qq.com
 
-If you like this project and are willing to support a cup of coffee, you can donate to the following address, thanks.
-
-USDT-TRC20: TNbqKengUa5w96zaWW2ZMM7HUhWYSZewKR
-
-QR-Code:
-
-![TRC20](trc20.png)
-
-USDT-ERC20: 0x587e97c745de7bab7f6ab979382fa8a83c030d0d
-
-QR-Code:
-
-![ERC20](erc20.png)
-
-If the donation amount exceeds 100 \$, you can get a free technical consultation. For details, please contact us by email. Thank you.
-
 ### About
 
 [中文](README_CN.md)
