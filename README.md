@@ -10,7 +10,7 @@ This is a WhatsApp communication protocol SDK based on WhatsApp Android client, 
 
 The latest official version: https://www.whatsapp.com/android/
 
-Latest SDK version: 2.22.21.71
+Latest SDK version: 2.22.24.79
 
 #### Updates
 
